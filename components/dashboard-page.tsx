@@ -19,11 +19,11 @@ function ScoreSkeleton() {
 }
 
 export function DashboardPage() {
-  const { userName, creditScore, riskBand, scoreHistory, setCurrentPage } = useAppState()
+  const { userName, creditScore, riskBand, topFactors, formData, scoreHistory, setCurrentPage } = useAppState()
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1200)
+    const timer = setTimeout(() => setIsLoading(false), 800)
     return () => clearTimeout(timer)
   }, [])
 
@@ -34,21 +34,25 @@ export function DashboardPage() {
         ? "bg-amber-100 text-amber-800"
         : "bg-red-100 text-red-800"
 
+  const stability = parseFloat(formData.incomeStability) || null
+  const savingsBalance = parseFloat(formData.savingsBalance) || null
+  const monthsActive = parseFloat(formData.monthsActive) || null
+
   const stats = [
     {
       icon: TrendingUp,
       label: "Income Stability",
-      value: "Strong",
+      value: stability != null ? `${Math.round(stability * 100)}%` : "---",
     },
     {
       icon: Wallet,
-      label: "Savings Strength",
-      value: "Good",
+      label: "Savings Balance",
+      value: savingsBalance != null ? `₹${savingsBalance.toLocaleString("en-IN")}` : "---",
     },
     {
       icon: Clock,
       label: "Economic Activity",
-      value: "Active",
+      value: monthsActive != null ? `${monthsActive} mo` : "---",
     },
   ]
 
@@ -105,12 +109,44 @@ export function DashboardPage() {
                 <stat.icon className="h-5 w-5 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">
-                {isLoading ? <Skeleton className="h-6 w-20" /> : stat.value}
-              </p>
+              <div className="mt-1">
+                {isLoading ? (
+                  <Skeleton className="h-6 w-20" />
+                ) : (
+                  <p className="text-lg font-semibold text-foreground">{stat.value}</p>
+                )}
+              </div>
             </div>
           ))}
         </div>
+
+        {/* Top Factors */}
+        {!isLoading && topFactors.length > 0 && (
+          <div className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
+              What drives your score
+            </h2>
+            <div className="flex flex-col gap-3">
+              {topFactors.map((factor, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3"
+                >
+                  <span className="text-sm text-foreground">{factor.label}</span>
+                  <span
+                    className={`text-xs font-medium ${
+                      factor.direction === "positive"
+                        ? "text-emerald-600"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {factor.direction === "positive" ? "▲ Helps" : "▼ Hurts"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="mb-8">
@@ -135,6 +171,10 @@ export function DashboardPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
+          ) : scoreHistory.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground">
+              No score history yet. Generate your first score above.
+            </p>
           ) : (
             <div className="flex flex-col gap-3">
               {scoreHistory.slice(0, 5).map((entry, index) => {

@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
+import type { TopFactor } from "@/lib/api"
 
 export interface UserFormData {
   fullName: string
@@ -53,6 +54,9 @@ export interface AppState {
   setRiskBand: (band: "Low" | "Medium" | "High" | null) => void
   scoreHistory: ScoreEntry[]
   setScoreHistory: (history: ScoreEntry[]) => void
+  topFactors: TopFactor[]
+  setTopFactors: (factors: TopFactor[]) => void
+  users?: unknown[]
 }
 
 const defaultFormData: UserFormData = {
@@ -90,11 +94,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [formData, setFormData] = useState<UserFormData>(defaultFormData)
   const [creditScore, setCreditScore] = useState<number | null>(null)
   const [riskBand, setRiskBand] = useState<"Low" | "Medium" | "High" | null>(null)
-  const [scoreHistory, setScoreHistory] = useState<ScoreEntry[]>([
-    { date: "2026-01-15", score: 718, riskBand: "Low" },
-    { date: "2025-11-20", score: 695, riskBand: "Medium" },
-    { date: "2025-09-10", score: 672, riskBand: "Medium" },
-  ])
+  const [scoreHistory, setScoreHistory] = useState<ScoreEntry[]>([])
+  const [topFactors, setTopFactors] = useState<TopFactor[]>([])
 
   return (
     <AppContext.Provider
@@ -113,6 +114,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRiskBand,
         scoreHistory,
         setScoreHistory,
+        topFactors,
+        setTopFactors,
       }}
     >
       {children}

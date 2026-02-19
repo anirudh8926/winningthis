@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { useAppState } from "@/lib/app-context"
+import { calculateScore } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 
 function FormField({
   label,
@@ -78,37 +79,82 @@ const profileLabels: Record<string, string> = {
 }
 
 export function DynamicFormPage() {
-  const { setCurrentPage, formData, setFormData, setCreditScore, setRiskBand, scoreHistory, setScoreHistory } = useAppState()
+  const { setCurrentPage, formData, setFormData, setCreditScore, setRiskBand, setTopFactors, scoreHistory, setScoreHistory } = useAppState()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const update = (field: string, value: string | boolean) => {
     setFormData({ ...formData, [field]: value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    setTimeout(() => {
-      const score = Math.floor(Math.random() * 200) + 600
-      let band: "Low" | "Medium" | "High"
-      if (score >= 720) band = "Low"
-      else if (score >= 650) band = "Medium"
-      else band = "High"
+    // Map frontend profile type to API value
+    const profileMap: Record<string, string> = {
+      "gig-worker": "gig",
+      student: "student",
+      shopkeeper: "shopkeeper",
+      rural: "rural",
+      salaried: "salaried",
+    }
+    const profile = profileMap[formData.profileType] ?? "salaried"
 
-      setCreditScore(score)
-      setRiskBand(band)
+    // Income stability (0–1) → income variance: variance = (1/stability) - 1
+    const stability = parseFloat(formData.incomeStability) || 0.5
+    const income_variance = stability > 0 ? (1 / stability) - 1 : 99
+
+    // GPA: form uses Indian 10-point scale → normalise to 0–4
+    const gpaRaw = parseFloat(formData.gpa) || 0
+    const gpa = Math.min(gpaRaw / 10 * 4, 4)
+
+    // Attendance rate: form uses percentage (e.g. 92) → 0–1
+    const attendance_rate = Math.min((parseFloat(formData.attendanceRate) || 0) / 100, 1)
+
+    const payload = {
+      profile_type: profile,
+      monthly_income:  parseFloat(formData.monthlyIncome)  || 0,
+      income_variance,
+      savings_balance: parseFloat(formData.savingsBalance) || 0,
+      months_active:   parseFloat(formData.monthsActive)   || 0,
+      ...(profile === "student"    && { gpa, attendance_rate }),
+      ...(profile === "gig"        && {
+        platform_rating:  parseFloat(formData.platformRating)  || 0,
+        avg_weekly_hours: parseFloat(formData.avgWeeklyHours)  || 0,
+      }),
+      ...(profile === "shopkeeper" && {
+        business_years:    parseFloat(formData.businessYears)    || 0,
+        avg_daily_revenue: parseFloat(formData.avgDailyRevenue)  || 0,
+      }),
+      ...(profile === "rural"      && {
+        land_size_acres:   parseFloat(formData.landSize)          || 0,
+        subsidy_amount:    parseFloat(formData.subsidyAmount)     || 0,
+        seasonality_index: parseFloat(formData.seasonalityIndex) || 0,
+      }),
+    }
+
+    try {
+      const result = await calculateScore(payload)
+
+      setCreditScore(result.alternative_credit_score)
+      setRiskBand(result.risk_band)
+      setTopFactors(result.top_factors)
       setScoreHistory([
         {
           date: new Date().toISOString().split("T")[0],
-          score,
-          riskBand: band,
+          score: result.alternative_credit_score,
+          riskBand: result.risk_band,
         },
         ...scoreHistory,
       ])
-      setIsLoading(false)
       setCurrentPage("dashboard")
-    }, 2500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reach the scoring API. Is it running?")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -341,6 +387,13 @@ export function DynamicFormPage() {
               )}
             </div>
           </section>
+
+          {error && (
+            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <Button
             type="submit"

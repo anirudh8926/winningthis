@@ -103,39 +103,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Initialize Supabase auth on mount
   useEffect(() => {
-    const supabase = createClient()
+    try {
+      const supabase = createClient()
 
-    const getSession = async () => {
+      const getSession = async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          setSupabaseUser(session.user)
+          setIsLoggedIn(true)
+          const name = session.user.email?.split("@")[0] || "User"
+          setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+        }
+      }
+
+      getSession()
+
       const {
-        data: { session },
-      } = await supabase.auth.getSession()
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setSupabaseUser(session.user)
+          setIsLoggedIn(true)
+          const name = session.user.email?.split("@")[0] || "User"
+          setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+        } else {
+          setSupabaseUser(null)
+          setIsLoggedIn(false)
+          setUserName("")
+        }
+      })
 
-      if (session?.user) {
-        setSupabaseUser(session.user)
-        setIsLoggedIn(true)
-        const name = session.user.email?.split("@")[0] || "User"
-        setUserName(name.charAt(0).toUpperCase() + name.slice(1))
-      }
+      return () => subscription.unsubscribe()
+    } catch (error) {
+      console.warn("[v0] Supabase client initialization failed:", error)
+      // App will still work in fallback mode
     }
-
-    getSession()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setSupabaseUser(session.user)
-        setIsLoggedIn(true)
-        const name = session.user.email?.split("@")[0] || "User"
-        setUserName(name.charAt(0).toUpperCase() + name.slice(1))
-      } else {
-        setSupabaseUser(null)
-        setIsLoggedIn(false)
-        setUserName("")
-      }
-    })
-
-    return () => subscription.unsubscribe()
   }, [])
 
   return (

@@ -14,13 +14,14 @@ export function AuthPage() {
   const [password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      const supabase = createClient()
+
       if (isSignUp) {
         // Sign up
         const { data: authData, error: signUpError } = await supabase.auth.signUp({

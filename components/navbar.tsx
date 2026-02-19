@@ -2,6 +2,8 @@
 
 import { useAppState } from "@/lib/app-context";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export function Navbar() {
   const {
@@ -12,6 +14,23 @@ export function Navbar() {
     setCreditScore,
     setRiskBand,
   } = useAppState();
+
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setIsLoggedIn(false);
+      setCreditScore(null);
+      setRiskBand(null);
+      setCurrentPage("landing");
+      toast.success("Logged out successfully");
+    } catch (error) {
+      toast.error("Failed to logout");
+      console.error(error);
+    }
+  };
 
   return (
     <header className="fixed top-4 left-1/2 z-50 w-full max-w-3xl -translate-x-1/2 px-4">
@@ -63,12 +82,7 @@ export function Navbar() {
                 variant="outline"
                 size="sm"
                 className="rounded-full"
-                onClick={() => {
-                  setIsLoggedIn(false);
-                  setCreditScore(null);
-                  setRiskBand(null);
-                  setCurrentPage("landing");
-                }}
+                onClick={handleLogout}
               >
                 Log out
               </Button>

@@ -1,6 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
 
 export interface UserFormData {
   fullName: string
@@ -45,6 +47,8 @@ export interface AppState {
   setIsLoggedIn: (loggedIn: boolean) => void
   userName: string
   setUserName: (name: string) => void
+  supabaseUser: User | null
+  setSupabaseUser: (user: User | null) => void
   formData: UserFormData
   setFormData: (data: UserFormData) => void
   creditScore: number | null
@@ -87,6 +91,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentPage, setCurrentPage] = useState("landing")
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userName, setUserName] = useState("")
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null)
   const [formData, setFormData] = useState<UserFormData>(defaultFormData)
   const [creditScore, setCreditScore] = useState<number | null>(null)
   const [riskBand, setRiskBand] = useState<"Low" | "Medium" | "High" | null>(null)
@@ -95,6 +100,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     { date: "2025-11-20", score: 695, riskBand: "Medium" },
     { date: "2025-09-10", score: 672, riskBand: "Medium" },
   ])
+
+  // Initialize Supabase auth on mount
+  useEffect(() => {
+    const supabase = createClient()
+
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        setSupabaseUser(session.user)
+        setIsLoggedIn(true)
+        const name = session.user.email?.split("@")[0] || "User"
+        setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+      }
+    }
+
+    getSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setSupabaseUser(session.user)
+        setIsLoggedIn(true)
+        const name = session.user.email?.split("@")[0] || "User"
+        setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+      } else {
+        setSupabaseUser(null)
+        setIsLoggedIn(false)
+        setUserName("")
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   return (
     <AppContext.Provider
@@ -105,6 +147,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsLoggedIn,
         userName,
         setUserName,
+        supabaseUser,
+        setSupabaseUser,
         formData,
         setFormData,
         creditScore,

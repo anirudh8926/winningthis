@@ -5,19 +5,69 @@ import { useAppState } from "@/lib/app-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 export function AuthPage() {
   const { setCurrentPage, setIsLoggedIn, setUserName } = useAppState()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const supabase = createClient()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const name = email.split("@")[0] || "User"
-    setUserName(name.charAt(0).toUpperCase() + name.slice(1))
-    setIsLoggedIn(true)
-    setCurrentPage("profile-select")
+    setIsLoading(true)
+
+    try {
+      if (isSignUp) {
+        // Sign up
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/protected`,
+          },
+        })
+
+        if (signUpError) {
+          toast.error(signUpError.message)
+          setIsLoading(false)
+          return
+        }
+
+        toast.success("Account created! Please check your email to confirm.")
+        setEmail("")
+        setPassword("")
+        setIsSignUp(false)
+      } else {
+        // Sign in
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) {
+          toast.error(signInError.message)
+          setIsLoading(false)
+          return
+        }
+
+        if (authData.user) {
+          const name = authData.user.email?.split("@")[0] || "User"
+          setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+          setIsLoggedIn(true)
+          toast.success("Signed in successfully!")
+          setCurrentPage("profile-select")
+        }
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.")
+      console.error(error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -69,9 +119,10 @@ export function AuthPage() {
             <Button
               type="submit"
               size="lg"
-              className="mt-2 w-full rounded-full bg-foreground py-6 text-base font-medium text-background hover:bg-foreground/90"
+              disabled={isLoading}
+              className="mt-2 w-full rounded-full bg-foreground py-6 text-base font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
             >
-              Continue
+              {isLoading ? "Processing..." : "Continue"}
             </Button>
           </form>
 

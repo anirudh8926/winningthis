@@ -34,4 +34,15 @@ app/task.md
 .vscode/
 .idea/
 *.DS_Store
+.DS_Store
 Thumbs.db
+
+# v0 / Next.js (from collaborator's branch)
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+node_modules/
+.next/
+
+# Common ignores
+*.log

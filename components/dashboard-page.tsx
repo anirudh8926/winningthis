@@ -38,17 +38,20 @@ export function DashboardPage() {
     {
       icon: TrendingUp,
       label: "Income Stability",
-      value: "Strong",
+      value: creditScore ? "Strong" : "",
+      hasData: creditScore !== null,
     },
     {
       icon: Wallet,
       label: "Savings Strength",
-      value: "Good",
+      value: creditScore ? "Good" : "",
+      hasData: creditScore !== null,
     },
     {
       icon: Clock,
       label: "Economic Activity",
-      value: "Active",
+      value: creditScore ? "Active" : "",
+      hasData: creditScore !== null,
     },
   ]
 
@@ -105,27 +108,23 @@ export function DashboardPage() {
                 <stat.icon className="h-5 w-5 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <div className="mt-1 text-lg font-semibold text-foreground">
-                {isLoading ? <Skeleton className="h-6 w-20" /> : stat.value}
-              </div>
+              {isLoading ? (
+                <Skeleton className="mt-1 h-6 w-20" />
+              ) : (
+                <div className="mt-1">
+                  {stat.hasData ? (
+                    <span className="text-lg font-semibold text-foreground">{stat.value}</span>
+                  ) : (
+                    <div className="h-2 w-full rounded-full bg-secondary" />
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* Actions */}
-        <div className="mb-8">
-          <Button
-            variant="outline"
-            className="w-full rounded-xl"
-            onClick={() => setCurrentPage("settings")}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Edit Account Settings
-          </Button>
-        </div>
-
         {/* Score History */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-foreground">
             Score History
           </h2>
@@ -135,7 +134,7 @@ export function DashboardPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
-          ) : (
+          ) : scoreHistory.length > 0 ? (
             <div className="flex flex-col gap-3">
               {scoreHistory.slice(0, 5).map((entry, index) => {
                 const entryBandColor =
@@ -160,8 +159,20 @@ export function DashboardPage() {
                 )
               })}
             </div>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">No score history yet</p>
           )}
         </div>
+
+        {/* Edit Account Settings Button */}
+        <Button
+          variant="outline"
+          className="w-full rounded-xl"
+          onClick={() => setCurrentPage("settings")}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Edit Account Settings
+        </Button>
       </div>
     </main>
   )

@@ -83,14 +83,6 @@ export function AuthPage() {
             </div>
           )}
 
-          {!isSignUp && (
-            <div className="mb-4 rounded-lg bg-blue-50 p-3 text-xs text-blue-700 border border-blue-200">
-              <p className="font-medium mb-2">Demo credentials:</p>
-              <p>user@example.com / password123</p>
-              <p>demo@creditbridge.com / demo123</p>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="email" className="text-sm font-medium text-foreground">

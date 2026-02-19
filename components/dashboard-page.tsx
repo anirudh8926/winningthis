@@ -105,9 +105,9 @@ export function DashboardPage() {
                 <stat.icon className="h-5 w-5 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">
+              <div className="mt-1 text-lg font-semibold text-foreground">
                 {isLoading ? <Skeleton className="h-6 w-20" /> : stat.value}
-              </p>
+              </div>
             </div>
           ))}
         </div>

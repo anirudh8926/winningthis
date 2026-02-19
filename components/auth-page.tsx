@@ -1,25 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAppState } from "@/lib/app-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-// Demo credentials for testing
-const DEMO_USERS = {
-  "user@example.com": "password123",
-  "demo@creditbridge.com": "demo123",
-  "test@test.com": "test123",
-}
-
 export function AuthPage() {
-  const { setCurrentPage, setIsLoggedIn, setUserName } = useAppState()
+  const { setCurrentPage, setIsLoggedIn, setUserName, setIsNewUser } = useAppState()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [registeredUsers, setRegisteredUsers] = useState<Set<string>>(new Set())
+
+  // Load registered users from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("creditbridge_users")
+      if (stored) {
+        setRegisteredUsers(new Set(JSON.parse(stored)))
+      }
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,10 +33,17 @@ export function AuthPage() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500))
 
+    // Validate email format
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address")
+      setIsLoading(false)
+      return
+    }
+
     if (isSignUp) {
-      // For sign up, just validate email format
-      if (!email.includes("@")) {
-        setError("Please enter a valid email address")
+      // Sign up - new user flow
+      if (registeredUsers.has(email)) {
+        setError("Email already registered. Please sign in instead.")
         setIsLoading(false)
         return
       }
@@ -41,24 +52,44 @@ export function AuthPage() {
         setIsLoading(false)
         return
       }
-      const name = email.split("@")[0] || "User"
-      setUserName(name.charAt(0).toUpperCase() + name.slice(1))
-      setIsLoggedIn(true)
-      setCurrentPage("profile-select")
-    } else {
-      // For login, validate against demo users
-      const isValidCredentials = DEMO_USERS[email as keyof typeof DEMO_USERS] === password
       
-      if (!isValidCredentials) {
-        setError("Invalid email or password")
-        setIsLoading(false)
-        return
+      // Register the user
+      const updatedUsers = new Set(registeredUsers)
+      updatedUsers.add(email)
+      setRegisteredUsers(updatedUsers)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("creditbridge_users", JSON.stringify(Array.from(updatedUsers)))
+        localStorage.setItem(`creditbridge_pwd_${email}`, password)
       }
 
       const name = email.split("@")[0] || "User"
       setUserName(name.charAt(0).toUpperCase() + name.slice(1))
       setIsLoggedIn(true)
+      setIsNewUser(true)
       setCurrentPage("profile-select")
+    } else {
+      // Login - returning user flow
+      if (!registeredUsers.has(email)) {
+        setError("Email not found. Please sign up first.")
+        setIsLoading(false)
+        return
+      }
+
+      // Verify password
+      if (typeof window !== "undefined") {
+        const storedPassword = localStorage.getItem(`creditbridge_pwd_${email}`)
+        if (storedPassword !== password) {
+          setError("Invalid email or password")
+          setIsLoading(false)
+          return
+        }
+      }
+
+      const name = email.split("@")[0] || "User"
+      setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+      setIsLoggedIn(true)
+      setIsNewUser(false)
+      setCurrentPage("dashboard")
     }
   }
 

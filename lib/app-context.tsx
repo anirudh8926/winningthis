@@ -53,6 +53,8 @@ export interface AppState {
   setRiskBand: (band: "Low" | "Medium" | "High" | null) => void
   scoreHistory: ScoreEntry[]
   setScoreHistory: (history: ScoreEntry[]) => void
+  isNewUser: boolean
+  setIsNewUser: (isNew: boolean) => void
 }
 
 const defaultFormData: UserFormData = {
@@ -90,11 +92,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [formData, setFormData] = useState<UserFormData>(defaultFormData)
   const [creditScore, setCreditScore] = useState<number | null>(null)
   const [riskBand, setRiskBand] = useState<"Low" | "Medium" | "High" | null>(null)
-  const [scoreHistory, setScoreHistory] = useState<ScoreEntry[]>([
-    { date: "2026-01-15", score: 718, riskBand: "Low" },
-    { date: "2025-11-20", score: 695, riskBand: "Medium" },
-    { date: "2025-09-10", score: 672, riskBand: "Medium" },
-  ])
+  const [scoreHistory, setScoreHistory] = useState<ScoreEntry[]>([])
+  const [isNewUser, setIsNewUser] = useState(false)
 
   return (
     <AppContext.Provider
@@ -113,6 +112,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRiskBand,
         scoreHistory,
         setScoreHistory,
+        isNewUser,
+        setIsNewUser,
       }}
     >
       {children}

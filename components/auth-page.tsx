@@ -49,20 +49,24 @@ export function AuthPage() {
         })
 
         if (signInError) {
+          console.log("[v0] Sign in error:", signInError)
           toast.error(signInError.message)
           setIsLoading(false)
           return
         }
 
+        console.log("[v0] Sign in successful, user:", authData.user)
         if (authData.user) {
           const name = authData.user.email?.split("@")[0] || "User"
           setUserName(name.charAt(0).toUpperCase() + name.slice(1))
           setIsLoggedIn(true)
           toast.success("Signed in successfully!")
+          console.log("[v0] Setting current page to profile-select")
           setCurrentPage("profile-select")
         }
       }
     } catch (error) {
+      console.log("[v0] Catch error:", error)
       toast.error("An error occurred. Please try again.")
       console.error(error)
     } finally {
